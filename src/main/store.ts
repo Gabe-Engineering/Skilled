@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
-import { dirname, join } from 'path'
+import { dirname, join, normalize } from 'path'
 import type { PersistedState, RecentEntry } from '@shared/ipc'
 
 const DEFAULTS: PersistedState = {
@@ -43,12 +43,14 @@ class Store {
   }
 
   addRecent(entry: RecentEntry): void {
-    const rest = this.state.recentFiles.filter((r) => r.path.toLowerCase() !== entry.path.toLowerCase())
-    this.set({ recentFiles: [entry, ...rest].slice(0, MAX_RECENTS) })
+    const path = normalize(entry.path)
+    const rest = this.state.recentFiles.filter((r) => normalize(r.path).toLowerCase() !== path.toLowerCase())
+    this.set({ recentFiles: [{ ...entry, path }, ...rest].slice(0, MAX_RECENTS) })
   }
 
   removeRecent(path: string): void {
-    this.set({ recentFiles: this.state.recentFiles.filter((r) => r.path.toLowerCase() !== path.toLowerCase()) })
+    const target = normalize(path).toLowerCase()
+    this.set({ recentFiles: this.state.recentFiles.filter((r) => normalize(r.path).toLowerCase() !== target) })
   }
 
   clearRecents(): void {

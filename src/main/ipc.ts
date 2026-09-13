@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
-import { basename, dirname } from 'path'
+import { basename, dirname, normalize } from 'path'
 import { IPC, type PersistedState } from '@shared/ipc'
 import type { SkillDocument } from '@shared/skill-types'
 import { store } from './store'
@@ -25,7 +25,8 @@ function winOf(event: Electron.IpcMainInvokeEvent): BrowserWindow {
   return w
 }
 
-async function openPath(path: string): Promise<ReturnType<typeof readSkill> extends Promise<infer T> ? T : never> {
+async function openPath(rawPath: string): Promise<ReturnType<typeof readSkill> extends Promise<infer T> ? T : never> {
+  const path = normalize(rawPath)
   const result = await readSkill(path)
   store.addRecent({
     path,
