@@ -11,6 +11,7 @@ import {
 import { TEMPLATES } from '@shared/templates'
 import { validateSkill } from '@shared/validation'
 import { deriveDescription, deriveName } from '@renderer/lib/autofill'
+import { join } from '@renderer/lib/paths'
 
 export interface Overrides {
   name: boolean
@@ -36,7 +37,7 @@ interface DocState {
   addAttachments: (files: PickedFile[], subdir: AttachmentSubdir) => void
   removeAttachment: (id: string) => void
   setAttachmentSubdir: (id: string, subdir: AttachmentSubdir) => void
-  markSaved: (path: string) => void
+  markSaved: (path: string, skillDir: string) => void
   dismissWarnings: () => void
 }
 
@@ -152,10 +153,16 @@ export const useDocStore = create<DocState>((set, get) => ({
     set({ doc: next, dirty: true, issues: validateSkill(next) })
   },
 
-  markSaved: (path) => {
+  markSaved: (path, skillDir) => {
     const { doc } = get()
-    // After export, previously "new" attachments now live inside the skill folder.
-    set({ filePath: path, dirty: false, doc: { ...doc, attachments: doc.attachments.map((a) => ({ ...a })) } })
+    // After export, every attachment lives inside the skill folder; point at those copies
+    // so later saves no longer depend on the original files.
+    const attachments: Attachment[] = doc.attachments.map((a) => ({
+      ...a,
+      origin: 'existing',
+      sourcePath: join(a.subdir ? join(skillDir, a.subdir) : skillDir, a.fileName)
+    }))
+    set({ filePath: path, dirty: false, doc: { ...doc, attachments } })
   },
 
   dismissWarnings: () => set({ warnings: [] })

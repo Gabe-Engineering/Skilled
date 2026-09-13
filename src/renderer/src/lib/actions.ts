@@ -24,7 +24,7 @@ async function doExport(destRoot: string): Promise<boolean> {
     toast('error', 'Export failed', r.error)
     return false
   }
-  markSaved(r.skillMdPath)
+  markSaved(r.skillMdPath, r.skillDir)
   const extra = r.copied.length ? ` + ${r.copied.length} file${r.copied.length === 1 ? '' : 's'}` : ''
   toast('success', `Saved to ${r.skillDir}`, `SKILL.md${extra}`)
   for (const w of r.warnings) toast('error', w)
