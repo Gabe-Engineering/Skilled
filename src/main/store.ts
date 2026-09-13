@@ -25,7 +25,11 @@ class Store {
     try {
       if (existsSync(this.file)) {
         const raw = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<PersistedState>
-        this.state = { ...DEFAULTS, ...raw, recentFiles: Array.isArray(raw.recentFiles) ? raw.recentFiles : [] }
+        this.state = {
+          ...DEFAULTS,
+          ...raw,
+          recentFiles: Array.isArray(raw.recentFiles) ? raw.recentFiles : []
+        }
       }
     } catch {
       this.state = { ...DEFAULTS }
@@ -37,20 +41,28 @@ class Store {
   }
 
   set(patch: Partial<PersistedState>): void {
+    const before = this.state.recentFiles
     this.state = { ...this.state, ...patch }
     this.scheduleWrite()
-    this.listeners.forEach((l) => l())
+    // The only listener rebuilds the native menu, whose sole dynamic part is the
+    // recent-files list. Window bounds change on every resize tick and panel
+    // toggles land here too; rebuilding the whole menu for those is wasted work.
+    if (this.state.recentFiles !== before) this.listeners.forEach((l) => l())
   }
 
   addRecent(entry: RecentEntry): void {
     const path = normalize(entry.path)
-    const rest = this.state.recentFiles.filter((r) => normalize(r.path).toLowerCase() !== path.toLowerCase())
+    const rest = this.state.recentFiles.filter(
+      (r) => normalize(r.path).toLowerCase() !== path.toLowerCase()
+    )
     this.set({ recentFiles: [{ ...entry, path }, ...rest].slice(0, MAX_RECENTS) })
   }
 
   removeRecent(path: string): void {
     const target = normalize(path).toLowerCase()
-    this.set({ recentFiles: this.state.recentFiles.filter((r) => normalize(r.path).toLowerCase() !== target) })
+    this.set({
+      recentFiles: this.state.recentFiles.filter((r) => normalize(r.path).toLowerCase() !== target)
+    })
   }
 
   clearRecents(): void {

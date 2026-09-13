@@ -1,27 +1,32 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { AppInfo } from '@shared/ipc'
 import { useUiStore } from '@renderer/store/ui-store'
+import { useModal } from '@renderer/hooks/useModal'
 
 export function AboutDialog(): React.JSX.Element | null {
   const open = useUiStore((s) => s.aboutOpen)
   const setOpen = useUiStore((s) => s.setAboutOpen)
   const [info, setInfo] = useState<AppInfo | null>(null)
 
+  const close = useCallback(() => setOpen(false), [setOpen])
+  const ref = useModal(open, close)
+
   useEffect(() => {
     if (!open) return
     void window.skilled.getAppInfo().then(setInfo)
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, setOpen])
+  }, [open])
 
   if (!open) return null
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
-      <div className="modal small" role="dialog" aria-modal="true">
-        <h2>Skilled</h2>
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+      <div
+        className="modal small"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-title"
+        ref={ref}
+      >
+        <h2 id="about-title">Skilled</h2>
         <p className="muted">A Word-like editor for Claude Code skills.</p>
         {info && (
           <dl className="about-list">
@@ -34,7 +39,7 @@ export function AboutDialog(): React.JSX.Element | null {
           </dl>
         )}
         <div className="modal-actions">
-          <button type="button" className="btn primary" onClick={() => setOpen(false)}>
+          <button type="button" className="btn primary" onClick={close}>
             Close
           </button>
         </div>

@@ -11,7 +11,8 @@ export interface SplitResult {
 
 /** Split a SKILL.md into its YAML block (without fences) and Markdown body. */
 export function splitFrontmatter(text: string): SplitResult {
-  const clean = text.replace(/^﻿/, '').replace(/\r\n/g, '\n')
+  // Strip a UTF-8 BOM (written as an escape so the source stays plain ASCII).
+  const clean = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')
   const m = clean.match(FM_RE)
   if (!m) return { yaml: null, body: clean }
   return { yaml: m[1], body: m[2] }

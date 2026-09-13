@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, FilePlus2, FolderOpen, Save, Download, FolderSearch, Clock } from 'lucide-react'
+import {
+  ChevronDown,
+  FilePlus2,
+  FolderOpen,
+  Save,
+  Download,
+  FolderSearch,
+  Clock
+} from 'lucide-react'
 import { useDocStore } from '@renderer/store/document-store'
 import { useUiStore } from '@renderer/store/ui-store'
 import { exportAs, openSkill, save, showInFolder, startNew } from '@renderer/lib/actions'
@@ -36,7 +44,10 @@ export function TitleBar(): React.JSX.Element {
   return (
     <div className="titlebar">
       <div className="file-menu" ref={ref}>
-        <button className={'file-button' + (open ? ' open' : '')} onClick={() => setOpen((v) => !v)}>
+        <button
+          className={'file-button' + (open ? ' open' : '')}
+          onClick={() => setOpen((v) => !v)}
+        >
           File <ChevronDown size={14} />
         </button>
         {open && (
@@ -53,7 +64,13 @@ export function TitleBar(): React.JSX.Element {
               </div>
               {recents.length === 0 && <div className="file-empty">No recent skills</div>}
               {recents.map((r) => (
-                <button key={r.path} role="menuitem" className="recent" title={r.path} onClick={() => run(() => openSkill(r.path))}>
+                <button
+                  key={r.path}
+                  role="menuitem"
+                  className="recent"
+                  title={r.path}
+                  onClick={() => run(() => openSkill(r.path))}
+                >
                   <span className="recent-name">{r.name}</span>
                   <span className="recent-path">{r.path}</span>
                 </button>
@@ -74,7 +91,11 @@ export function TitleBar(): React.JSX.Element {
       </div>
       <div className="title-center">
         <span className="doc-title">{name || 'Untitled'}</span>
-        {dirty && <span className="dirty-dot" title="Unsaved changes">●</span>}
+        {dirty && (
+          <span className="dirty-dot" title="Unsaved changes">
+            ●
+          </span>
+        )}
         <span className="app-name">Skilled</span>
       </div>
       <div className="title-right" title={filePath ?? 'Not exported yet'}>

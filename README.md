@@ -12,7 +12,7 @@ A Word-like editor for Claude Code skills. Type the instructions like a document
 
 ## What it does
 
-- **Word feel**: ribbon, white page on a gray canvas, status bar, red-squiggle spell check with right-click suggestions (F7 toggles it).
+- **Word feel**: ribbon, white page on a gray canvas, status bar, red-squiggle spell check with right-click suggestions (F7 toggles it). Follows the OS light/dark setting.
 - **YAML figured out for you**: the properties panel derives `name` from your title and `description` from your first paragraph. Edit either to take over; the ↻ badge derives it again.
 - **All the known frontmatter keys**: name, description, argument-hint, user-invocable, disable-model-invocation, model, allowed-tools. Anything else goes in the "Additional YAML" box.
 - **Live checks**: kebab-case name, missing description, no "use when…" trigger phrasing, unused `$ARGUMENTS`, broken YAML.
@@ -54,3 +54,5 @@ npm run build:win    # NSIS installer + portable exe in dist/
 - `src/preload/` — the `window.skilled` bridge (contextIsolation on, no Node in the renderer).
 - `src/renderer/` — React UI: TipTap editor with the official Markdown extension (plus fixes for list nesting, escaping, and unknown HTML tags), ribbon, properties panel, preview, status bar.
 - `test/` — vitest suites; `test/fixtures/real/` holds copies of real marketplace skills used as round-trip fixtures.
+
+Known limitations and the reasoning behind them live in [`issues.md`](issues.md).

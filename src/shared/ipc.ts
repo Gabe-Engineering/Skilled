@@ -96,7 +96,10 @@ export interface SkilledApi {
     destRoot: string | null
   ) => Promise<ExportResult | { error: string } | null>
   pickExportDir: () => Promise<string | null>
-  checkCollision: (destRoot: string, name: string) => Promise<{ exists: boolean; hasSkillMd: boolean }>
+  checkCollision: (
+    destRoot: string,
+    name: string
+  ) => Promise<{ exists: boolean; hasSkillMd: boolean }>
   confirmOverwrite: (skillDir: string) => Promise<boolean>
   pickAttachments: (kind: 'references' | 'scripts' | 'other') => Promise<PickedFile[]>
   confirmUnsaved: (docName: string) => Promise<UnsavedChoice>

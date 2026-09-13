@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, shell } from 'electron'
+import { BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -17,11 +17,41 @@ export function allowClose(): void {
   forceClose = true
 }
 
-function boundsAreVisible(b: { x: number; y: number; width: number; height: number }): boolean {
+interface Bounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** True when enough of the saved window overlaps a display that the user can grab it. */
+function boundsAreVisible(b: Bounds): boolean {
   return screen.getAllDisplays().some((d) => {
     const a = d.workArea
-    return b.x + b.width > a.x + 40 && b.x < a.x + a.width - 40 && b.y >= a.y - 10 && b.y < a.y + a.height - 40
+    return (
+      b.x + b.width > a.x + 40 &&
+      b.x < a.x + a.width - 40 &&
+      b.y >= a.y - 10 &&
+      b.y < a.y + a.height - 40
+    )
   })
+}
+
+/**
+ * Clamp against the display the window was actually saved on, not the primary
+ * one. Clamping a second-monitor window to primary-display coordinates threw it
+ * back onto the main screen (and negative-x monitors were clamped to 0).
+ */
+function clampToDisplay(b: Bounds): Bounds {
+  const work = screen.getDisplayMatching(b).workArea
+  const width = Math.min(b.width, work.width)
+  const height = Math.min(b.height, work.height)
+  return {
+    width,
+    height,
+    x: Math.min(Math.max(b.x, work.x), work.x + work.width - width),
+    y: Math.min(Math.max(b.y, work.y), work.y + work.height - height)
+  }
 }
 
 export function createMainWindow(): BrowserWindow {
@@ -29,20 +59,20 @@ export function createMainWindow(): BrowserWindow {
   const saved = state.windowBounds
   const useSaved = saved && boundsAreVisible(saved)
   const work = screen.getPrimaryDisplay().workAreaSize
-  const defaultWidth = Math.min(1280, Math.max(800, work.width - 40))
-  const defaultHeight = Math.min(860, Math.max(500, work.height - 40))
+  const placed = useSaved ? clampToDisplay(saved) : null
 
   const win = new BrowserWindow({
-    width: useSaved ? Math.min(saved.width, work.width) : defaultWidth,
-    height: useSaved ? Math.min(saved.height, work.height) : defaultHeight,
-    x: useSaved ? Math.max(0, Math.min(saved.x, work.width - 200)) : undefined,
-    y: useSaved ? Math.max(0, Math.min(saved.y, work.height - 100)) : undefined,
+    width: placed ? placed.width : Math.min(1280, Math.max(800, work.width - 40)),
+    height: placed ? placed.height : Math.min(860, Math.max(500, work.height - 40)),
+    x: placed ? placed.x : undefined,
+    y: placed ? placed.y : undefined,
     minWidth: 800,
     minHeight: 500,
     show: false,
     title: 'Skilled',
     autoHideMenuBar: true,
-    backgroundColor: '#e9e9ec',
+    // Matches the renderer's --canvas token so the first paint does not flash.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#17191d' : '#e4e6ea',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -111,9 +141,22 @@ export function createMainWindow(): BrowserWindow {
     mainWindow = null
   })
 
+  // Links come from whatever SKILL.md the user opened, so hand the OS only the
+  // two schemes a documentation link can legitimately use.
   win.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    let protocol = ''
+    try {
+      protocol = new URL(details.url).protocol
+    } catch {
+      protocol = ''
+    }
+    if (protocol === 'http:' || protocol === 'https:') shell.openExternal(details.url)
     return { action: 'deny' }
+  })
+
+  // Nothing in the app navigates; a stray link must never replace the UI itself.
+  win.webContents.on('will-navigate', (e, url) => {
+    if (url !== win.webContents.getURL()) e.preventDefault()
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {

@@ -1,7 +1,15 @@
 import { useEffect } from 'react'
 import { useDocStore } from '@renderer/store/document-store'
 import { useUiStore } from '@renderer/store/ui-store'
-import { exportAs, handleCloseRequest, openSkill, save, showInFolder, startNew, toggleSpell } from '@renderer/lib/actions'
+import {
+  exportAs,
+  handleCloseRequest,
+  openSkill,
+  save,
+  showInFolder,
+  startNew,
+  toggleSpell
+} from '@renderer/lib/actions'
 
 /** Wires main-process menu actions, close requests, spell changes, and persisted state. */
 export function useAppEvents(): void {

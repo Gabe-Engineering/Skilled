@@ -1,7 +1,18 @@
 /* Document surface: Word-like typography inside the page. */
 
+/*
+ * The editable area fills whatever height the page has, so clicking anywhere on
+ * the white page puts the caret in the document. A fixed min-height here used
+ * to make even an empty skill taller than the canvas.
+ */
+.page > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .page-content {
-  min-height: 800px;
+  flex: 1;
   outline: none;
   font-family: var(--doc-font);
   font-size: 15px; /* ~11pt */

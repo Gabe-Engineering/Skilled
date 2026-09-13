@@ -29,10 +29,27 @@ interface UiState {
   setAboutOpen: (v: boolean) => void
   toast: (kind: Toast['kind'], message: string, detail?: string) => void
   dismissToast: (id: number) => void
-  hydrate: (p: { panelOpen: boolean; previewOpen: boolean; spellOn: boolean; spellLang: string; recentFiles: RecentEntry[] }) => void
+  hydrate: (p: {
+    panelOpen: boolean
+    previewOpen: boolean
+    spellOn: boolean
+    spellLang: string
+    recentFiles: RecentEntry[]
+  }) => void
 }
 
 let toastSeq = 0
+
+const MAX_TOASTS = 4
+const timers = new Map<number, number>()
+
+function clearTimer(id: number): void {
+  const t = timers.get(id)
+  if (t !== undefined) {
+    window.clearTimeout(t)
+    timers.delete(id)
+  }
+}
 
 export const useUiStore = create<UiState>((set, get) => ({
   panelOpen: true,
@@ -63,10 +80,21 @@ export const useUiStore = create<UiState>((set, get) => ({
   setAboutOpen: (v) => set({ aboutOpen: v }),
   toast: (kind, message, detail) => {
     const id = ++toastSeq
-    set({ toasts: [...get().toasts, { id, kind, message, detail }] })
-    setTimeout(() => get().dismissToast(id), kind === 'error' ? 8000 : 4000)
+    // A burst of export warnings should not bury the window.
+    const kept = get().toasts.slice(-(MAX_TOASTS - 1))
+    for (const t of get().toasts.slice(0, Math.max(0, get().toasts.length - (MAX_TOASTS - 1)))) {
+      clearTimer(t.id)
+    }
+    set({ toasts: [...kept, { id, kind, message, detail }] })
+    timers.set(
+      id,
+      window.setTimeout(() => get().dismissToast(id), kind === 'error' ? 8000 : 4000)
+    )
   },
-  dismissToast: (id) => set({ toasts: get().toasts.filter((t) => t.id !== id) }),
+  dismissToast: (id) => {
+    clearTimer(id)
+    set({ toasts: get().toasts.filter((t) => t.id !== id) })
+  },
   hydrate: (p) =>
     set({
       panelOpen: p.panelOpen,

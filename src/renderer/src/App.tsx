@@ -15,7 +15,13 @@ import { useDocStore } from './store/document-store'
 import * as actions from './lib/actions'
 
 // Handy for debugging from DevTools: window.__skilled.doc.getState()
-;(window as unknown as { __skilled: unknown }).__skilled = { doc: useDocStore, ui: useUiStore, actions }
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __skilled: unknown }).__skilled = {
+    doc: useDocStore,
+    ui: useUiStore,
+    actions
+  }
+}
 
 export default function App(): React.JSX.Element {
   const editor = useSkillEditor()

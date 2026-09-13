@@ -91,8 +91,8 @@ describe('markdown round trip (features fixture)', () => {
   })
   it('keeps nested lists', () => {
     expect(out).toMatch(/^- First item$/m)
-    expect(out).toMatch(/^  - Nested item$/m)
-    expect(out).toMatch(/^    - Deep nested$/m)
+    expect(out).toMatch(/^ {2}- Nested item$/m)
+    expect(out).toMatch(/^ {4}- Deep nested$/m)
     expect(out).toMatch(/^1\. Step one$/m)
     expect(out).toMatch(/^ {2,3}1\. Sub step$/m)
   })
@@ -126,7 +126,7 @@ describe('markdown round trip (real skills)', () => {
       const once = roundTrip(body)
       const twice = roundTrip(once)
       expect(twice).toBe(once)
-      const words = (s: string) => plainText(s).replace(/\s+/g, ' ').trim()
+      const words = (s: string): string => plainText(s).replace(/\s+/g, ' ').trim()
       expect(words(once)).toBe(words(body))
     })
   }

@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useCallback } from 'react'
 import { FileText, TerminalSquare, BookOpen, ListChecks } from 'lucide-react'
 import { TEMPLATES } from '@shared/templates'
 import { useDocStore } from '@renderer/store/document-store'
 import { useUiStore } from '@renderer/store/ui-store'
+import { useModal } from '@renderer/hooks/useModal'
 
 const ICONS: Record<string, React.ReactNode> = {
   blank: <FileText size={28} />,
@@ -16,20 +17,14 @@ export function NewDialog(): React.JSX.Element | null {
   const setOpen = useUiStore((s) => s.setNewDialogOpen)
   const newFromTemplate = useDocStore((s) => s.newFromTemplate)
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, setOpen])
+  const close = useCallback(() => setOpen(false), [setOpen])
+  const ref = useModal(open, close)
 
   if (!open) return null
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="new-title">
+    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="new-title" ref={ref}>
         <h2 id="new-title">New skill</h2>
         <p className="muted">Pick a starting point. You can change everything afterwards.</p>
         <div className="template-grid">
@@ -50,7 +45,7 @@ export function NewDialog(): React.JSX.Element | null {
           ))}
         </div>
         <div className="modal-actions">
-          <button type="button" className="btn" onClick={() => setOpen(false)}>
+          <button type="button" className="btn" onClick={close}>
             Cancel
           </button>
         </div>
