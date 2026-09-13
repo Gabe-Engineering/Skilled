@@ -27,13 +27,15 @@ export default defineConfig({
       chunkSizeWarningLimit: 1200,
       rollupOptions: {
         output: {
-          // Split the editor engine and the syntax grammars out of the app shell so
-          // the window chrome can paint before the heaviest code is evaluated.
+          // One vendor chunk for the editor engine and its syntax grammars. They
+          // import each other, so splitting them further produces circular chunks.
           manualChunks(id: string) {
-            if (id.includes('node_modules/highlight.js') || id.includes('node_modules/lowlight')) {
-              return 'highlight'
-            }
-            if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror-')) {
+            if (
+              id.includes('node_modules/@tiptap') ||
+              id.includes('node_modules/prosemirror-') ||
+              id.includes('node_modules/lowlight') ||
+              id.includes('node_modules/highlight.js')
+            ) {
               return 'editor'
             }
             return undefined

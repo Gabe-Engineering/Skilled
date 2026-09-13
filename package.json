@@ -36,6 +36,7 @@
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
+    "highlight.js": "^11.11.0",
     "js-yaml": "^5.4.2",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.45.0",
