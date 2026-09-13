@@ -12,7 +12,12 @@ export function Toasts(): React.JSX.Element {
             <div className="toast-message">{t.message}</div>
             {t.detail && <div className="toast-detail">{t.detail}</div>}
           </div>
-          <button type="button" className="icon-btn" aria-label="Dismiss" onClick={() => dismiss(t.id)}>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Dismiss"
+            onClick={() => dismiss(t.id)}
+          >
             <X size={14} />
           </button>
         </div>

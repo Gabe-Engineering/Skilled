@@ -83,7 +83,10 @@ export function useSkillEditor(): Editor | null {
 }
 
 function syncWordCount(editor: Editor): void {
-  const storage = (editor.storage as unknown as { characterCount?: CharacterCountStorage }).characterCount
-  const words = storage?.words ? storage.words() : editor.getText().split(/\s+/).filter(Boolean).length
+  const storage = (editor.storage as unknown as { characterCount?: CharacterCountStorage })
+    .characterCount
+  const words = storage?.words
+    ? storage.words()
+    : editor.getText().split(/\s+/).filter(Boolean).length
   useUiStore.getState().setWordCount(words)
 }

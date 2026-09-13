@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useEditorState, type Editor } from '@tiptap/react'
+import { redoDepth, undoDepth } from '@tiptap/pm/history'
 import {
   Bold,
   Italic,
@@ -62,7 +63,13 @@ function RibbonButton({
   )
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element {
+function Group({
+  title,
+  children
+}: {
+  title: string
+  children: React.ReactNode
+}): React.JSX.Element {
   return (
     <div className="ribbon-group">
       <div className="ribbon-group-body">{children}</div>
@@ -71,12 +78,12 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   )
 }
 
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
+
+// All six levels: a skill opened with `##### Notes` must not leave the select blank.
 const HEADING_OPTIONS = [
   { value: 0, label: 'Normal' },
-  { value: 1, label: 'Heading 1' },
-  { value: 2, label: 'Heading 2' },
-  { value: 3, label: 'Heading 3' },
-  { value: 4, label: 'Heading 4' }
+  ...([1, 2, 3, 4, 5, 6] as HeadingLevel[]).map((n) => ({ value: n, label: `Heading ${n}` }))
 ]
 
 export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
@@ -104,8 +111,10 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
         link: ed.isActive('link'),
         table: ed.isActive('table'),
         heading,
-        canUndo: ed.can().undo(),
-        canRedo: ed.can().redo()
+        // `ed.can().undo()` builds a throwaway command manager and chainable state on
+        // every transaction; the history plugin already tracks the depths for free.
+        canUndo: undoDepth(ed.state) > 0,
+        canRedo: redoDepth(ed.state) > 0
       }
     }
   })
@@ -143,7 +152,13 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
     } else {
       const url = /^[a-z][a-z0-9+.-]*:/i.test(href) ? href : `https://${href}`
       if (editor.state.selection.empty && !editor.isActive('link')) {
-        chain().insertContent({ type: 'text', text: url, marks: [{ type: 'link', attrs: { href: url } }] }).run()
+        chain()
+          .insertContent({
+            type: 'text',
+            text: url,
+            marks: [{ type: 'link', attrs: { href: url } }]
+          })
+          .run()
       } else {
         chain().extendMarkRange('link').setLink({ href: url }).run()
       }
@@ -159,30 +174,61 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
         </RibbonButton>
       </Group>
       <Group title="History">
-        <RibbonButton label="Undo (Ctrl+Z)" disabled={!state.canUndo} onClick={() => chain().undo().run()}>
+        <RibbonButton
+          label="Undo (Ctrl+Z)"
+          disabled={!state.canUndo}
+          onClick={() => chain().undo().run()}
+        >
           <Undo2 size={18} />
         </RibbonButton>
-        <RibbonButton label="Redo (Ctrl+Y)" disabled={!state.canRedo} onClick={() => chain().redo().run()}>
+        <RibbonButton
+          label="Redo (Ctrl+Y)"
+          disabled={!state.canRedo}
+          onClick={() => chain().redo().run()}
+        >
           <Redo2 size={18} />
         </RibbonButton>
       </Group>
       <Group title="Font">
-        <RibbonButton label="Bold (Ctrl+B)" active={state.bold} onClick={() => chain().toggleBold().run()}>
+        <RibbonButton
+          label="Bold (Ctrl+B)"
+          active={state.bold}
+          onClick={() => chain().toggleBold().run()}
+        >
           <Bold size={18} />
         </RibbonButton>
-        <RibbonButton label="Italic (Ctrl+I)" active={state.italic} onClick={() => chain().toggleItalic().run()}>
+        <RibbonButton
+          label="Italic (Ctrl+I)"
+          active={state.italic}
+          onClick={() => chain().toggleItalic().run()}
+        >
           <Italic size={18} />
         </RibbonButton>
-        <RibbonButton label="Underline (Ctrl+U)" active={state.underline} onClick={() => chain().toggleUnderline().run()}>
+        <RibbonButton
+          label="Underline (Ctrl+U)"
+          active={state.underline}
+          onClick={() => chain().toggleUnderline().run()}
+        >
           <Underline size={18} />
         </RibbonButton>
-        <RibbonButton label="Strikethrough" active={state.strike} onClick={() => chain().toggleStrike().run()}>
+        <RibbonButton
+          label="Strikethrough"
+          active={state.strike}
+          onClick={() => chain().toggleStrike().run()}
+        >
           <Strikethrough size={18} />
         </RibbonButton>
-        <RibbonButton label="Inline code (Ctrl+E)" active={state.code} onClick={() => chain().toggleCode().run()}>
+        <RibbonButton
+          label="Inline code (Ctrl+E)"
+          active={state.code}
+          onClick={() => chain().toggleCode().run()}
+        >
           <Code size={18} />
         </RibbonButton>
-        <RibbonButton label="Clear formatting" onClick={() => chain().unsetAllMarks().clearNodes().run()}>
+        <RibbonButton
+          label="Clear formatting"
+          onClick={() => chain().unsetAllMarks().clearNodes().run()}
+        >
           <RemoveFormatting size={18} />
         </RibbonButton>
       </Group>
@@ -195,7 +241,10 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
           onChange={(e) => {
             const level = Number(e.target.value)
             if (level === 0) chain().setParagraph().run()
-            else chain().setHeading({ level: level as 1 | 2 | 3 | 4 }).run()
+            else
+              chain()
+                .setHeading({ level: level as HeadingLevel })
+                .run()
           }}
         >
           {HEADING_OPTIONS.map((o) => (
@@ -206,16 +255,32 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
         </select>
       </Group>
       <Group title="Paragraph">
-        <RibbonButton label="Bullets" active={state.bullet} onClick={() => chain().toggleBulletList().run()}>
+        <RibbonButton
+          label="Bullets"
+          active={state.bullet}
+          onClick={() => chain().toggleBulletList().run()}
+        >
           <List size={18} />
         </RibbonButton>
-        <RibbonButton label="Numbering" active={state.ordered} onClick={() => chain().toggleOrderedList().run()}>
+        <RibbonButton
+          label="Numbering"
+          active={state.ordered}
+          onClick={() => chain().toggleOrderedList().run()}
+        >
           <ListOrdered size={18} />
         </RibbonButton>
-        <RibbonButton label="Quote" active={state.quote} onClick={() => chain().toggleBlockquote().run()}>
+        <RibbonButton
+          label="Quote"
+          active={state.quote}
+          onClick={() => chain().toggleBlockquote().run()}
+        >
           <Quote size={18} />
         </RibbonButton>
-        <RibbonButton label="Code block" active={state.codeBlock} onClick={() => chain().toggleCodeBlock().run()}>
+        <RibbonButton
+          label="Code block"
+          active={state.codeBlock}
+          onClick={() => chain().toggleCodeBlock().run()}
+        >
           <SquareCode size={18} />
         </RibbonButton>
         <RibbonButton label="Horizontal rule" onClick={() => chain().setHorizontalRule().run()}>
@@ -284,10 +349,18 @@ export function Ribbon({ editor }: RibbonProps): React.JSX.Element {
         )}
       </Group>
       <Group title="View">
-        <RibbonButton label="Properties (Ctrl+Shift+E)" active={panelOpen} onClick={() => setPanelOpen(!panelOpen)}>
+        <RibbonButton
+          label="Properties (Ctrl+Shift+E)"
+          active={panelOpen}
+          onClick={() => setPanelOpen(!panelOpen)}
+        >
           <PanelRight size={18} />
         </RibbonButton>
-        <RibbonButton label="Preview SKILL.md (Ctrl+Shift+P)" active={previewOpen} onClick={() => setPreviewOpen(!previewOpen)}>
+        <RibbonButton
+          label="Preview SKILL.md (Ctrl+Shift+P)"
+          active={previewOpen}
+          onClick={() => setPreviewOpen(!previewOpen)}
+        >
           <FileCode2 size={18} />
         </RibbonButton>
         <RibbonButton label="Spelling (F7)" active={spellOn} onClick={() => void toggleSpell()}>

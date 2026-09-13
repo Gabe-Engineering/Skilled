@@ -24,6 +24,12 @@ interface DocState {
   dirty: boolean
   overrides: Overrides
   issues: ValidationIssue[]
+  /**
+   * False until the user edits something or opens a real skill. A brand-new blank
+   * document is empty on purpose, so greeting it with "Name is required" is noise;
+   * `issues` still blocks saving either way.
+   */
+  touched: boolean
   warnings: string[]
   /** Bumped whenever the editor must reload its content from `doc.bodyMarkdown`. */
   loadToken: number
@@ -43,11 +49,33 @@ interface DocState {
 
 let attachmentSeq = 0
 
+/**
+ * Re-derive `name`/`description` from the body, but keep the previous
+ * `frontmatter` object when nothing actually changed. Typing in the body fires
+ * this on every sync tick; a fresh object each time re-rendered the whole
+ * properties panel for no reason.
+ */
 function withAutofill(doc: SkillDocument, overrides: Overrides): SkillDocument {
-  const fm = { ...doc.frontmatter }
-  if (!overrides.name) fm.name = deriveName(doc.bodyMarkdown)
-  if (!overrides.description) fm.description = deriveDescription(doc.bodyMarkdown)
-  return { ...doc, frontmatter: fm }
+  const fm = doc.frontmatter
+  const name = overrides.name ? fm.name : deriveName(doc.bodyMarkdown)
+  const description = overrides.description ? fm.description : deriveDescription(doc.bodyMarkdown)
+  if (name === fm.name && description === fm.description) return doc
+  return { ...doc, frontmatter: { ...fm, name, description } }
+}
+
+/**
+ * `validateSkill` allocates a new array every call, which invalidates every
+ * subscriber. Hand back the previous array when the issues are identical.
+ */
+function stableIssues(previous: ValidationIssue[], next: ValidationIssue[]): ValidationIssue[] {
+  if (previous.length !== next.length) return next
+  for (let i = 0; i < next.length; i++) {
+    const a = previous[i]
+    const b = next[i]
+    if (a.id !== b.id || a.level !== b.level || a.message !== b.message || a.fix !== b.fix)
+      return next
+  }
+  return previous
 }
 
 export const useDocStore = create<DocState>((set, get) => ({
@@ -56,6 +84,7 @@ export const useDocStore = create<DocState>((set, get) => ({
   dirty: false,
   overrides: { name: false, description: false },
   issues: validateSkill(emptyDocument()),
+  touched: false,
   warnings: [],
   loadToken: 0,
 
@@ -69,13 +98,17 @@ export const useDocStore = create<DocState>((set, get) => ({
       dirty: false,
       overrides,
       issues: validateSkill(doc),
+      touched: !!doc.bodyMarkdown.trim(),
       warnings: [],
       loadToken: get().loadToken + 1
     })
   },
 
   loadDocument: (result) => {
-    const overrides = { name: !!result.doc.frontmatter.name, description: !!result.doc.frontmatter.description }
+    const overrides = {
+      name: !!result.doc.frontmatter.name,
+      description: !!result.doc.frontmatter.description
+    }
     const doc = withAutofill(result.doc, overrides)
     set({
       doc,
@@ -83,16 +116,22 @@ export const useDocStore = create<DocState>((set, get) => ({
       dirty: false,
       overrides,
       issues: validateSkill(doc),
+      touched: true,
       warnings: result.warnings,
       loadToken: get().loadToken + 1
     })
   },
 
   setBody: (md) => {
-    const { doc, overrides, dirty } = get()
+    const { doc, overrides } = get()
     if (md === doc.bodyMarkdown) return
     const next = withAutofill({ ...doc, bodyMarkdown: md }, overrides)
-    set({ doc: next, dirty: dirty || true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   setField: (key, value) => {
@@ -106,22 +145,43 @@ export const useDocStore = create<DocState>((set, get) => ({
       bag[key] = value
     }
     const nextOverrides =
-      key === 'name' ? { ...overrides, name: true } : key === 'description' ? { ...overrides, description: true } : overrides
+      key === 'name'
+        ? { ...overrides, name: true }
+        : key === 'description'
+          ? { ...overrides, description: true }
+          : overrides
     const next = { ...doc, frontmatter: fm }
-    set({ doc: next, overrides: nextOverrides, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      overrides: nextOverrides,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   resetOverride: (field) => {
     const { doc, overrides } = get()
     const nextOverrides = { ...overrides, [field]: false }
     const next = withAutofill(doc, nextOverrides)
-    set({ doc: next, overrides: nextOverrides, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      overrides: nextOverrides,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   setExtraYaml: (yaml) => {
     const { doc } = get()
     const next = { ...doc, extraYaml: yaml }
-    set({ doc: next, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   addAttachments: (files, subdir) => {
@@ -135,13 +195,23 @@ export const useDocStore = create<DocState>((set, get) => ({
       origin: 'new'
     }))
     const next = { ...doc, attachments: [...doc.attachments, ...added] }
-    set({ doc: next, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   removeAttachment: (id) => {
     const { doc } = get()
     const next = { ...doc, attachments: doc.attachments.filter((a) => a.id !== id) }
-    set({ doc: next, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   setAttachmentSubdir: (id, subdir) => {
@@ -150,7 +220,12 @@ export const useDocStore = create<DocState>((set, get) => ({
       ...doc,
       attachments: doc.attachments.map((a) => (a.id === id ? { ...a, subdir } : a))
     }
-    set({ doc: next, dirty: true, issues: validateSkill(next) })
+    set({
+      doc: next,
+      dirty: true,
+      touched: true,
+      issues: stableIssues(get().issues, validateSkill(next))
+    })
   },
 
   markSaved: (path, skillDir) => {

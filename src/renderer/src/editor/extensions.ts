@@ -5,10 +5,39 @@ import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
 import Underline from '@tiptap/extension-underline'
 import { Placeholder, CharacterCount } from '@tiptap/extensions'
-import { createLowlight, common } from 'lowlight'
+import { createLowlight } from 'lowlight'
+import bash from 'highlight.js/lib/languages/bash'
+import diff from 'highlight.js/lib/languages/diff'
+import ini from 'highlight.js/lib/languages/ini'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdown from 'highlight.js/lib/languages/markdown'
+import plaintext from 'highlight.js/lib/languages/plaintext'
+import powershell from 'highlight.js/lib/languages/powershell'
+import python from 'highlight.js/lib/languages/python'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 import type { AnyExtension } from '@tiptap/core'
 
-const lowlight = createLowlight(common)
+/**
+ * `lowlight`'s `common` set pulls in 35 grammars (most of the renderer bundle).
+ * Skills only ever fence these, so register them by hand and keep startup quick.
+ */
+const lowlight = createLowlight({
+  bash,
+  diff,
+  ini,
+  javascript,
+  json,
+  markdown,
+  plaintext,
+  powershell,
+  python,
+  typescript,
+  xml,
+  yaml
+})
 
 /** Underline has no Markdown syntax; emit inline HTML so it survives a round trip. */
 const UnderlineHtml = Underline.extend({
@@ -30,7 +59,8 @@ type Tokenizer = {
   tokenize: (src: string, tokens: unknown, lexer: unknown) => { raw: string } | undefined
 } & Record<string, unknown>
 
-const originalTokenizer = (OrderedList.config as { markdownTokenizer?: Tokenizer }).markdownTokenizer
+const originalTokenizer = (OrderedList.config as { markdownTokenizer?: Tokenizer })
+  .markdownTokenizer
 
 const OrderedListFixed = originalTokenizer
   ? OrderedList.extend({

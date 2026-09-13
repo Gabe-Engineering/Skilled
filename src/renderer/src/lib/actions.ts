@@ -25,14 +25,20 @@ async function doExport(destRoot: string): Promise<boolean> {
     return false
   }
   markSaved(r.skillMdPath, r.skillDir)
-  const extra = r.copied.length ? ` + ${r.copied.length} file${r.copied.length === 1 ? '' : 's'}` : ''
+  const extra = r.copied.length
+    ? ` + ${r.copied.length} file${r.copied.length === 1 ? '' : 's'}`
+    : ''
   toast('success', `Saved to ${r.skillDir}`, `SKILL.md${extra}`)
   for (const w of r.warnings) toast('error', w)
   await refreshRecents()
   return true
 }
 
-async function ensureNoCollision(destRoot: string, name: string, allowSameDir?: string): Promise<boolean> {
+async function ensureNoCollision(
+  destRoot: string,
+  name: string,
+  allowSameDir?: string
+): Promise<boolean> {
   const target = join(destRoot, name)
   if (allowSameDir && target.toLowerCase() === allowSameDir.toLowerCase()) return true
   const c = await api().checkCollision(destRoot, name)
@@ -69,7 +75,11 @@ export async function exportAs(): Promise<boolean> {
   const root = await api().pickExportDir()
   if (!root) return false
   const { doc, filePath } = useDocStore.getState()
-  const ok = await ensureNoCollision(root, doc.frontmatter.name.trim(), filePath ? dirname(filePath) : undefined)
+  const ok = await ensureNoCollision(
+    root,
+    doc.frontmatter.name.trim(),
+    filePath ? dirname(filePath) : undefined
+  )
   if (!ok) return false
   return doExport(root)
 }

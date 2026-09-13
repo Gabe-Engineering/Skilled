@@ -1,17 +1,43 @@
-import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, AlertTriangle, RotateCcw, X, FilePlus, Lock, ChevronDown, ChevronRight } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  AlertCircle,
+  AlertTriangle,
+  RotateCcw,
+  X,
+  FilePlus,
+  Lock,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react'
 import type { AttachmentSubdir, IssueField, ValidationIssue } from '@shared/skill-types'
 import { useDocStore } from '@renderer/store/document-store'
 import { useUiStore } from '@renderer/store/ui-store'
 
-const TOOL_SUGGESTIONS = ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebFetch', 'WebSearch', 'Task', 'Agent']
+const TOOL_SUGGESTIONS = [
+  'Read',
+  'Write',
+  'Edit',
+  'Bash',
+  'Glob',
+  'Grep',
+  'WebFetch',
+  'WebSearch',
+  'Task',
+  'Agent'
+]
 const MODEL_SUGGESTIONS = ['haiku', 'sonnet', 'opus']
 
 function fieldIssues(issues: ValidationIssue[], field: IssueField): ValidationIssue[] {
   return issues.filter((i) => i.field === field)
 }
 
-function IssueLine({ issue, onFix }: { issue: ValidationIssue; onFix?: (fix: string) => void }): React.JSX.Element {
+function IssueLine({
+  issue,
+  onFix
+}: {
+  issue: ValidationIssue
+  onFix?: (fix: string) => void
+}): React.JSX.Element {
   return (
     <div className={'issue ' + issue.level}>
       {issue.level === 'error' ? <AlertCircle size={14} /> : <AlertTriangle size={14} />}
@@ -31,27 +57,37 @@ function AutoBadge({ auto, onReset }: { auto: boolean; onReset: () => void }): R
       auto
     </span>
   ) : (
-    <button type="button" className="badge reset" title="Derive from the document again" onClick={onReset}>
+    <button
+      type="button"
+      className="badge reset"
+      title="Derive from the document again"
+      onClick={onReset}
+    >
       <RotateCcw size={11} /> auto
     </button>
   )
 }
 
 function TriState({
+  id,
   label,
   value,
   onChange,
   hint
 }: {
+  id: string
   label: string
   value: boolean | undefined
   onChange: (v: boolean | undefined) => void
   hint: string
 }): React.JSX.Element {
   return (
-    <label className="field">
-      <span className="field-label">{label}</span>
+    <div className="field">
+      <label className="field-label" htmlFor={id}>
+        {label}
+      </label>
       <select
+        id={id}
         value={value === undefined ? '' : value ? 'true' : 'false'}
         onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}
       >
@@ -60,11 +96,17 @@ function TriState({
         <option value="false">false</option>
       </select>
       <span className="field-hint">{hint}</span>
-    </label>
+    </div>
   )
 }
 
-function TagInput({ values, onChange }: { values: string[]; onChange: (v: string[]) => void }): React.JSX.Element {
+function TagInput({
+  values,
+  onChange
+}: {
+  values: string[]
+  onChange: (v: string[]) => void
+}): React.JSX.Element {
   const [text, setText] = useState('')
   const add = (raw: string): void => {
     const items = raw
@@ -83,7 +125,11 @@ function TagInput({ values, onChange }: { values: string[]; onChange: (v: string
         {values.map((v) => (
           <span key={v} className="tag">
             {v}
-            <button type="button" aria-label={`Remove ${v}`} onClick={() => onChange(values.filter((x) => x !== v))}>
+            <button
+              type="button"
+              aria-label={`Remove ${v}`}
+              onClick={() => onChange(values.filter((x) => x !== v))}
+            >
               <X size={12} />
             </button>
           </span>
@@ -122,8 +168,13 @@ function formatSize(n?: number): string {
 }
 
 export function PropertiesPanel(): React.JSX.Element {
-  const doc = useDocStore((s) => s.doc)
+  // Subscribe to slices, not the whole document: typing in the body changes
+  // `doc` on every sync tick but rarely touches attachments or extra YAML.
+  const f = useDocStore((s) => s.doc.frontmatter)
+  const attachments = useDocStore((s) => s.doc.attachments)
+  const docExtraYaml = useDocStore((s) => s.doc.extraYaml)
   const issues = useDocStore((s) => s.issues)
+  const touched = useDocStore((s) => s.touched)
   const overrides = useDocStore((s) => s.overrides)
   const setField = useDocStore((s) => s.setField)
   const resetOverride = useDocStore((s) => s.resetOverride)
@@ -133,16 +184,17 @@ export function PropertiesPanel(): React.JSX.Element {
   const setAttachmentSubdir = useDocStore((s) => s.setAttachmentSubdir)
   const setPanelOpen = useUiStore((s) => s.setPanelOpen)
 
-  const [extra, setExtra] = useState(doc.extraYaml)
-  const [advancedOpen, setAdvancedOpen] = useState(!!doc.extraYaml)
-  const lastExtra = useRef(doc.extraYaml)
-  useEffect(() => {
-    if (doc.extraYaml !== lastExtra.current) {
-      lastExtra.current = doc.extraYaml
-      setExtra(doc.extraYaml)
-      if (doc.extraYaml) setAdvancedOpen(true)
-    }
-  }, [doc.extraYaml])
+  // The YAML box keeps a local draft and commits on blur. When a different
+  // document is loaded, reset the draft during render rather than in an effect,
+  // so there is no extra pass with the previous skill's YAML on screen.
+  const [extra, setExtra] = useState(docExtraYaml)
+  const [advancedOpen, setAdvancedOpen] = useState(!!docExtraYaml)
+  const [syncedExtra, setSyncedExtra] = useState(docExtraYaml)
+  if (docExtraYaml !== syncedExtra) {
+    setSyncedExtra(docExtraYaml)
+    setExtra(docExtraYaml)
+    if (docExtraYaml) setAdvancedOpen(true)
+  }
 
   const descRef = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
@@ -150,11 +202,18 @@ export function PropertiesPanel(): React.JSX.Element {
     if (!el) return
     el.style.height = 'auto'
     el.style.height = Math.min(el.scrollHeight, 220) + 'px'
-  }, [doc.frontmatter.description])
+  }, [f.description])
 
-  const f = doc.frontmatter
-  const errors = issues.filter((i) => i.level === 'error').length
-  const warnings = issues.filter((i) => i.level === 'warning').length
+  // Shown issues stay quiet until the user has actually done something; `issues`
+  // itself still blocks saving.
+  const shown = useMemo(() => (touched ? issues : []), [touched, issues])
+  const { errors, warnings } = useMemo(
+    () => ({
+      errors: shown.filter((i) => i.level === 'error').length,
+      warnings: shown.filter((i) => i.level === 'warning').length
+    }),
+    [shown]
+  )
 
   const pick = async (kind: 'references' | 'scripts' | 'other'): Promise<void> => {
     const files = await window.skilled.pickAttachments(kind)
@@ -167,16 +226,23 @@ export function PropertiesPanel(): React.JSX.Element {
     <aside className="panel">
       <div className="panel-header">
         <span>Skill properties</span>
-        <button type="button" className="icon-btn" aria-label="Close panel" onClick={() => setPanelOpen(false)}>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="Close panel"
+          onClick={() => setPanelOpen(false)}
+        >
           <X size={16} />
         </button>
       </div>
       <div className="panel-body">
-        <label className="field">
+        <div className="field">
           <span className="field-label">
-            Name <AutoBadge auto={!overrides.name} onReset={() => resetOverride('name')} />
+            <label htmlFor="skill-name">Name</label>
+            <AutoBadge auto={!overrides.name} onReset={() => resetOverride('name')} />
           </span>
           <input
+            id="skill-name"
             type="text"
             className="mono"
             spellCheck={false}
@@ -184,32 +250,39 @@ export function PropertiesPanel(): React.JSX.Element {
             placeholder="my-skill"
             onChange={(e) => setField('name', e.target.value)}
           />
-          {fieldIssues(issues, 'name').map((i) => (
+          {fieldIssues(shown, 'name').map((i) => (
             <IssueLine key={i.id} issue={i} onFix={(fix) => setField('name', fix)} />
           ))}
-          <span className="field-hint">Folder name and /slash-command. Lowercase words joined by hyphens.</span>
-        </label>
+          <span className="field-hint">
+            Folder name and /slash-command. Lowercase words joined by hyphens.
+          </span>
+        </div>
 
-        <label className="field">
+        <div className="field">
           <span className="field-label">
-            Description <AutoBadge auto={!overrides.description} onReset={() => resetOverride('description')} />
+            <label htmlFor="skill-description">Description</label>
+            <AutoBadge auto={!overrides.description} onReset={() => resetOverride('description')} />
             <span className="counter">{f.description.length}</span>
           </span>
           <textarea
+            id="skill-description"
             ref={descRef}
             rows={3}
             value={f.description}
             placeholder="What it does and when Claude should use it…"
             onChange={(e) => setField('description', e.target.value)}
           />
-          {fieldIssues(issues, 'description').map((i) => (
+          {fieldIssues(shown, 'description').map((i) => (
             <IssueLine key={i.id} issue={i} />
           ))}
-        </label>
+        </div>
 
-        <label className="field">
-          <span className="field-label">Argument hint</span>
+        <div className="field">
+          <label className="field-label" htmlFor="skill-argument-hint">
+            Argument hint
+          </label>
           <input
+            id="skill-argument-hint"
             type="text"
             className="mono"
             spellCheck={false}
@@ -217,28 +290,35 @@ export function PropertiesPanel(): React.JSX.Element {
             placeholder="[file] [--flag]"
             onChange={(e) => setField('argument-hint', e.target.value)}
           />
-          {fieldIssues(issues, 'argument-hint').map((i) => (
+          {fieldIssues(shown, 'argument-hint').map((i) => (
             <IssueLine key={i.id} issue={i} />
           ))}
-          <span className="field-hint">Shown after the command name. Use $ARGUMENTS in the body.</span>
-        </label>
+          <span className="field-hint">
+            Shown after the command name. Use $ARGUMENTS in the body.
+          </span>
+        </div>
 
         <TriState
+          id="skill-user-invocable"
           label="User invocable"
           value={f['user-invocable']}
           onChange={(v) => setField('user-invocable', v)}
           hint="Can the user run it by typing /name?"
         />
         <TriState
+          id="skill-disable-model-invocation"
           label="Disable model invocation"
           value={f['disable-model-invocation']}
           onChange={(v) => setField('disable-model-invocation', v)}
           hint="Stop Claude from loading it on its own."
         />
 
-        <label className="field">
-          <span className="field-label">Model</span>
+        <div className="field">
+          <label className="field-label" htmlFor="skill-model">
+            Model
+          </label>
           <input
+            id="skill-model"
             type="text"
             list="model-suggestions"
             className="mono"
@@ -252,18 +332,21 @@ export function PropertiesPanel(): React.JSX.Element {
               <option key={m} value={m} />
             ))}
           </datalist>
-        </label>
+        </div>
 
         <div className="field">
           <span className="field-label">Allowed tools</span>
-          <TagInput values={f['allowed-tools'] ?? []} onChange={(v) => setField('allowed-tools', v)} />
+          <TagInput
+            values={f['allowed-tools'] ?? []}
+            onChange={(v) => setField('allowed-tools', v)}
+          />
           <span className="field-hint">Leave empty to allow everything. Press Enter to add.</span>
         </div>
 
         <div className="field">
           <span className="field-label">
             Attachments
-            <span className="counter">{doc.attachments.length}</span>
+            <span className="counter">{attachments.length}</span>
           </span>
           <div className="attach-actions">
             <button type="button" className="btn small" onClick={() => void pick('references')}>
@@ -276,11 +359,13 @@ export function PropertiesPanel(): React.JSX.Element {
               <FilePlus size={14} /> Other
             </button>
           </div>
-          {doc.attachments.length > 0 && (
+          {attachments.length > 0 && (
             <ul className="attach-list">
-              {doc.attachments.map((a) => (
+              {attachments.map((a) => (
                 <li key={a.id} title={a.sourcePath}>
-                  {a.origin === 'existing' ? <Lock size={13} className="muted" /> : null}
+                  {a.origin === 'existing' ? (
+                    <Lock size={13} className="muted" aria-label="Already in the skill folder" />
+                  ) : null}
                   <span className="attach-name">{a.fileName}</span>
                   <select
                     value={a.subdir}
@@ -294,19 +379,29 @@ export function PropertiesPanel(): React.JSX.Element {
                     <option value="">(root)</option>
                   </select>
                   <span className="attach-size">{formatSize(a.size)}</span>
-                  {a.origin === 'new' && (
-                    <button type="button" className="icon-btn" aria-label="Remove" onClick={() => removeAttachment(a.id)}>
-                      <X size={14} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`Remove ${a.fileName} from the list`}
+                    title={
+                      a.origin === 'existing'
+                        ? 'Stop listing this file. The file itself stays in the skill folder.'
+                        : 'Remove'
+                    }
+                    onClick={() => removeAttachment(a.id)}
+                  >
+                    <X size={14} />
+                  </button>
                 </li>
               ))}
             </ul>
           )}
-          {fieldIssues(issues, 'attachments').map((i) => (
+          {fieldIssues(shown, 'attachments').map((i) => (
             <IssueLine key={i.id} issue={i} />
           ))}
-          <span className="field-hint">Copied into the skill folder on save. Files already there are kept.</span>
+          <span className="field-hint">
+            Copied into the skill folder on save. Files already there are kept.
+          </span>
         </div>
 
         <div className="field">
@@ -319,17 +414,20 @@ export function PropertiesPanel(): React.JSX.Element {
                 className="mono"
                 rows={4}
                 spellCheck={false}
+                aria-label="Additional YAML"
                 value={extra}
                 placeholder={'version: "1.0"\nlicense: MIT'}
                 onChange={(e) => setExtra(e.target.value)}
                 onBlur={() => {
-                  if (extra !== doc.extraYaml) setExtraYaml(extra)
+                  if (extra !== docExtraYaml) setExtraYaml(extra)
                 }}
               />
-              {fieldIssues(issues, 'extraYaml').map((i) => (
+              {fieldIssues(shown, 'extraYaml').map((i) => (
                 <IssueLine key={i.id} issue={i} />
               ))}
-              <span className="field-hint">Extra frontmatter keys, written after the ones above.</span>
+              <span className="field-hint">
+                Extra frontmatter keys, written after the ones above.
+              </span>
             </>
           )}
         </div>
@@ -340,16 +438,20 @@ export function PropertiesPanel(): React.JSX.Element {
             {errors > 0 && <span className="counter err">{errors}</span>}
             {warnings > 0 && <span className="counter warn">{warnings}</span>}
           </span>
-          {issues.length === 0 ? (
+          {!touched ? (
+            <div className="field-hint">Checks appear as you write.</div>
+          ) : shown.length === 0 ? (
             <div className="issue ok">Looks good. Ready to save.</div>
           ) : (
-            issues
+            shown
               .filter((i) => i.field === 'body' || i.field === undefined)
               .map((i) => <IssueLine key={i.id} issue={i} />)
           )}
-          {issues.length > 0 && issues.every((i) => i.field !== 'body' && i.field !== undefined) && (
-            <div className="field-hint">See the notes under each field above.</div>
-          )}
+          {touched &&
+            shown.length > 0 &&
+            shown.every((i) => i.field !== 'body' && i.field !== undefined) && (
+              <div className="field-hint">See the notes under each field above.</div>
+            )}
         </div>
       </div>
     </aside>
