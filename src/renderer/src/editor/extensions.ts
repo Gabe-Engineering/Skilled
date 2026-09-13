@@ -25,6 +25,8 @@ const UnderlineHtml = Underline.extend({
  */
 const ORDERED_ITEM_RE = /^\s*(\d{1,9}|[A-Za-z])[.)]\s/
 type Tokenizer = {
+  name: string
+  level: 'block' | 'inline'
   tokenize: (src: string, tokens: unknown, lexer: unknown) => { raw: string } | undefined
 } & Record<string, unknown>
 

@@ -1,35 +1,42 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import { TitleBar } from './components/TitleBar'
+import { Ribbon } from './components/Ribbon/Ribbon'
+import { Canvas } from './components/Canvas'
+import { PropertiesPanel } from './components/PropertiesPanel/PropertiesPanel'
+import { PreviewPane } from './components/PreviewPane'
+import { StatusBar } from './components/StatusBar'
+import { NewDialog } from './components/NewDialog'
+import { AboutDialog } from './components/AboutDialog'
+import { Toasts } from './components/Toast'
+import { useSkillEditor } from './editor/useSkillEditor'
+import { useAppEvents } from './hooks/useAppEvents'
+import { useShortcuts } from './hooks/useShortcuts'
+import { useUiStore } from './store/ui-store'
+import { useDocStore } from './store/document-store'
+import * as actions from './lib/actions'
 
-function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+// Handy for debugging from DevTools: window.__skilled.doc.getState()
+;(window as unknown as { __skilled: unknown }).__skilled = { doc: useDocStore, ui: useUiStore, actions }
+
+export default function App(): React.JSX.Element {
+  const editor = useSkillEditor()
+  const panelOpen = useUiStore((s) => s.panelOpen)
+  const previewOpen = useUiStore((s) => s.previewOpen)
+  useAppEvents()
+  useShortcuts()
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
+    <div className="app">
+      <TitleBar />
+      <Ribbon editor={editor} />
+      <div className="workspace">
+        <Canvas editor={editor} />
+        {previewOpen && <PreviewPane />}
+        {panelOpen && <PropertiesPanel />}
       </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+      <StatusBar />
+      <NewDialog />
+      <AboutDialog />
+      <Toasts />
+    </div>
   )
 }
-
-export default App
