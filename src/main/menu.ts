@@ -71,9 +71,7 @@ export function buildMenu(getWin: () => BrowserWindow | null): void {
         { role: 'zoomIn' },
         { role: 'zoomOut' },
         { role: 'resetZoom' },
-        ...(is.dev
-          ? [{ type: 'separator' as const }, { role: 'toggleDevTools' as const }]
-          : [])
+        ...(is.dev ? [{ type: 'separator' as const }, { role: 'toggleDevTools' as const }] : [])
       ]
     },
     {

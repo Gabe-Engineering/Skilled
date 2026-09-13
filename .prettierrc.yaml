@@ -2,3 +2,6 @@ singleQuote: true
 semi: false
 printWidth: 100
 trailingComma: none
+# Git normalizes to LF on commit (.gitattributes) but checks out CRLF on Windows.
+# Without this, every line of every file is a lint warning on a Windows clone.
+endOfLine: auto

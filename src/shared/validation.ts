@@ -22,7 +22,12 @@ export function validateSkill(doc: SkillDocument): ValidationIssue[] {
   const desc = f.description.trim()
 
   if (!name) {
-    issues.push({ id: 'name-required', level: 'error', field: 'name', message: 'Name is required.' })
+    issues.push({
+      id: 'name-required',
+      level: 'error',
+      field: 'name',
+      message: 'Name is required.'
+    })
   } else if (!isKebabCase(name)) {
     const fix = toKebabCase(name)
     issues.push({

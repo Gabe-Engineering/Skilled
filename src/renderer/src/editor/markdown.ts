@@ -71,7 +71,11 @@ function repairParsed(node: JsonNode, m: ManagerInternals, inCode: boolean): voi
   const isCode = inCode || node.type === 'codeBlock'
   const isTextblock = TEXTBLOCK_TYPES.has(node.type || '')
 
-  if (!isTextblock && node.type !== 'doc' && node.content.some((c) => INLINE_TYPES.has(c.type || ''))) {
+  if (
+    !isTextblock &&
+    node.type !== 'doc' &&
+    node.content.some((c) => INLINE_TYPES.has(c.type || ''))
+  ) {
     const fixed: JsonNode[] = []
     for (const child of node.content) {
       if (child.type === 'text') {

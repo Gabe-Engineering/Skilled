@@ -128,9 +128,15 @@ describe('serializeSkillMd', () => {
   })
 
   it('normalizes allowed-tools shapes', () => {
-    expect(parseSkillMd('---\nallowed-tools: Read, Write\n---\n').frontmatter['allowed-tools']).toEqual(['Read', 'Write'])
-    expect(parseSkillMd('---\nallowed-tools: [Read, Glob]\n---\n').frontmatter['allowed-tools']).toEqual(['Read', 'Glob'])
-    expect(parseSkillMd('---\nallowed-tools:\n  - Read\n---\n').frontmatter['allowed-tools']).toEqual(['Read'])
+    expect(
+      parseSkillMd('---\nallowed-tools: Read, Write\n---\n').frontmatter['allowed-tools']
+    ).toEqual(['Read', 'Write'])
+    expect(
+      parseSkillMd('---\nallowed-tools: [Read, Glob]\n---\n').frontmatter['allowed-tools']
+    ).toEqual(['Read', 'Glob'])
+    expect(
+      parseSkillMd('---\nallowed-tools:\n  - Read\n---\n').frontmatter['allowed-tools']
+    ).toEqual(['Read'])
   })
 })
 

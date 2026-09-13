@@ -49,7 +49,10 @@ export async function pickAttachments(
         ]
       : kind === 'scripts'
         ? [
-            { name: 'Scripts', extensions: ['py', 'sh', 'ps1', 'js', 'mjs', 'ts', 'rb', 'bat', 'cmd'] },
+            {
+              name: 'Scripts',
+              extensions: ['py', 'sh', 'ps1', 'js', 'mjs', 'ts', 'rb', 'bat', 'cmd']
+            },
             { name: 'All files', extensions: ['*'] }
           ]
         : [{ name: 'All files', extensions: ['*'] }]

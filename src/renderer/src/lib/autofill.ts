@@ -33,7 +33,11 @@ export function deriveName(body: string): string {
   let source = stripInlineMarkdown(title)
   if (!isHeading) {
     // A plain first line is a sentence, not a title: keep it short.
-    source = source.split(/[.!?:;,]/)[0].split(/\s+/).slice(0, MAX_DERIVED_WORDS).join(' ')
+    source = source
+      .split(/[.!?:;,]/)[0]
+      .split(/\s+/)
+      .slice(0, MAX_DERIVED_WORDS)
+      .join(' ')
   }
   const name = toKebabCase(source)
   return name || 'untitled-skill'

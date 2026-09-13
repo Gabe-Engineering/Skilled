@@ -17,7 +17,8 @@ describe('autofill', () => {
     expect(deriveTitle('```\n# not a title\n```\n# Real Title\n')).toBe('Real Title')
   })
   it('derives the description from the first plain paragraph', () => {
-    const body = '# Title\n\n- a list first\n\nUse when the user asks for **things**. Second sentence.\n'
+    const body =
+      '# Title\n\n- a list first\n\nUse when the user asks for **things**. Second sentence.\n'
     expect(deriveDescription(body)).toBe('Use when the user asks for things. Second sentence.')
   })
   it('cuts long descriptions at a sentence end', () => {

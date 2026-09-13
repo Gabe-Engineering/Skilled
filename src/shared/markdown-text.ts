@@ -27,7 +27,13 @@ function isBlockStart(line: string): boolean {
 }
 
 function cannotAbsorb(line: string): boolean {
-  return HEADING_RE.test(line) || HR_RE.test(line) || TABLE_RE.test(line) || FENCE_RE.test(line) || HTML_BLOCK_RE.test(line)
+  return (
+    HEADING_RE.test(line) ||
+    HR_RE.test(line) ||
+    TABLE_RE.test(line) ||
+    FENCE_RE.test(line) ||
+    HTML_BLOCK_RE.test(line)
+  )
 }
 
 /**
@@ -45,7 +51,8 @@ export function unwrapSoftBreaks(md: string): string {
     const fenceMatch = raw.match(FENCE_RE)
     if (fence) {
       out.push(raw)
-      if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) fence = null
+      if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length)
+        fence = null
       continue
     }
     if (fenceMatch) {
@@ -71,7 +78,15 @@ export function unwrapSoftBreaks(md: string): string {
       continue
     }
     // Two adjacent quote lines: join them too (lazy continuation is handled above).
-    if (prev !== null && QUOTE_RE.test(prev) && QUOTE_RE.test(raw) && prev.replace(/^\s*>\s?/, '').trim() !== '' && raw.replace(/^\s*>\s?/, '').trim() !== '' && !HARD_BREAK_END_RE.test(prev) && !isBlockStart(raw.replace(/^\s*>\s?/, ''))) {
+    if (
+      prev !== null &&
+      QUOTE_RE.test(prev) &&
+      QUOTE_RE.test(raw) &&
+      prev.replace(/^\s*>\s?/, '').trim() !== '' &&
+      raw.replace(/^\s*>\s?/, '').trim() !== '' &&
+      !HARD_BREAK_END_RE.test(prev) &&
+      !isBlockStart(raw.replace(/^\s*>\s?/, ''))
+    ) {
       out[out.length - 1] = prev.replace(/\s+$/, '') + ' ' + raw.replace(/^\s*>\s?/, '').trim()
       continue
     }
@@ -93,7 +108,8 @@ export function normalizeMarkdown(md: string): string {
     const fenceMatch = raw.match(FENCE_RE)
     if (fence) {
       out.push(raw.replace(/[ \t]+$/, ''))
-      if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length) fence = null
+      if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length)
+        fence = null
       continue
     }
     const line = raw.replace(/[ \t]+$/, '')
@@ -117,7 +133,43 @@ export function normalizeMarkdown(md: string): string {
 
 /** Inline HTML tags the editor understands. Anything else is literal text. */
 export const KNOWN_INLINE_HTML = new Set([
-  'b', 'strong', 'i', 'em', 'u', 's', 'del', 'strike', 'code', 'a', 'br', 'span', 'sub', 'sup', 'kbd', 'mark', 'p', 'div', 'pre', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'img'
+  'b',
+  'strong',
+  'i',
+  'em',
+  'u',
+  's',
+  'del',
+  'strike',
+  'code',
+  'a',
+  'br',
+  'span',
+  'sub',
+  'sup',
+  'kbd',
+  'mark',
+  'p',
+  'div',
+  'pre',
+  'ul',
+  'ol',
+  'li',
+  'blockquote',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'hr',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'td',
+  'th',
+  'img'
 ])
 
 const KNOWN_TAG_RE = new RegExp(`^<\\/?(${[...KNOWN_INLINE_HTML].join('|')})(\\s|>|/)`, 'i')
@@ -139,7 +191,11 @@ function escapeDelimiter(text: string, ch: '*' | '_'): string {
     if (ch === '_') {
       const prev = text[i - 1]
       const next = text[i + 1]
-      const intraword = prev !== undefined && next !== undefined && /[\p{L}\p{N}]/u.test(prev) && /[\p{L}\p{N}]/u.test(next)
+      const intraword =
+        prev !== undefined &&
+        next !== undefined &&
+        /[\p{L}\p{N}]/u.test(prev) &&
+        /[\p{L}\p{N}]/u.test(next)
       if (intraword) return false
     }
     return isLeftFlanking(text, i) || isRightFlanking(text, i)
@@ -174,14 +230,18 @@ export function escapeMarkdownText(text: string, atParagraphStart: boolean): str
   // Entities: keep a literal ampersand from being decoded.
   t = t.replace(/&(?=#?\w+;)/g, '&amp;')
   // Real HTML tags must not be re-parsed as HTML; placeholders like <arg> stay literal.
-  t = t.replace(/<(?=\/?[A-Za-z])/g, (m, offset: number) => (KNOWN_TAG_RE.test(t.slice(offset)) ? '&lt;' : m))
+  t = t.replace(/<(?=\/?[A-Za-z])/g, (m, offset: number) =>
+    KNOWN_TAG_RE.test(t.slice(offset)) ? '&lt;' : m
+  )
   if (atParagraphStart) {
     t = t
       .replace(/^(\s{0,3})(#{1,6})(?=\s|$)/, '$1\\$2')
       .replace(/^(\s{0,3})>/, '$1\\>')
       .replace(/^(\s{0,3})([-+*])(?=\s)/, '$1\\$2')
       .replace(/^(\s{0,3})(\d{1,9})([.)])(?=\s)/, '$1$2\\$3')
-      .replace(/^(\s{0,3})([-*_])(\s*\2){2,}\s*$/, (m: string) => m.replace(/[-*_]/, (c) => '\\' + c))
+      .replace(/^(\s{0,3})([-*_])(\s*\2){2,}\s*$/, (m: string) =>
+        m.replace(/[-*_]/, (c) => '\\' + c)
+      )
       .replace(/^(\s{0,3})\|/, '$1\\|')
   }
   return t

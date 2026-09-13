@@ -25,7 +25,9 @@ function winOf(event: Electron.IpcMainInvokeEvent): BrowserWindow {
   return w
 }
 
-async function openPath(rawPath: string): Promise<ReturnType<typeof readSkill> extends Promise<infer T> ? T : never> {
+async function openPath(
+  rawPath: string
+): Promise<ReturnType<typeof readSkill> extends Promise<infer T> ? T : never> {
   const path = normalize(rawPath)
   const result = await readSkill(path)
   store.addRecent({

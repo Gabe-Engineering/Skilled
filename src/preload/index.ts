@@ -17,7 +17,8 @@ const api: SkilledApi = {
   pickExportDir: () => ipcRenderer.invoke(IPC.dialogPickExportDir),
   checkCollision: (destRoot: string, name: string) =>
     ipcRenderer.invoke(IPC.skillCollisionCheck, { destRoot, name }),
-  confirmOverwrite: (skillDir: string) => ipcRenderer.invoke(IPC.dialogConfirmOverwrite, { skillDir }),
+  confirmOverwrite: (skillDir: string) =>
+    ipcRenderer.invoke(IPC.dialogConfirmOverwrite, { skillDir }),
   pickAttachments: (kind) => ipcRenderer.invoke(IPC.dialogPickAttachments, { kind }),
   confirmUnsaved: (docName: string) => ipcRenderer.invoke(IPC.dialogConfirmUnsaved, { docName }),
   getState: () => ipcRenderer.invoke(IPC.stateGet),
@@ -25,7 +26,8 @@ const api: SkilledApi = {
   clearRecents: () => ipcRenderer.invoke(IPC.stateClearRecents),
   setSpellEnabled: (enabled: boolean) => ipcRenderer.invoke(IPC.spellSetEnabled, { enabled }),
   setSpellLanguage: (lang: string) => ipcRenderer.invoke(IPC.spellSetLanguage, { lang }),
-  setDirty: (dirty: boolean, title: string) => ipcRenderer.invoke(IPC.appSetDirty, { dirty, title }),
+  setDirty: (dirty: boolean, title: string) =>
+    ipcRenderer.invoke(IPC.appSetDirty, { dirty, title }),
   replyClose: (proceed: boolean) => ipcRenderer.invoke(IPC.appCloseReply, { proceed }),
   showInFolder: (path: string) => ipcRenderer.invoke(IPC.shellShowInFolder, { path }),
   getAppInfo: () => ipcRenderer.invoke(IPC.appGetInfo),
